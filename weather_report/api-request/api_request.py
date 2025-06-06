@@ -8,7 +8,7 @@ env_path = Path(__file__).resolve().parent.parent.parent / '.env'
 
 # Load .env from parent directory
 load_dotenv(dotenv_path=env_path)
-api_key = os.getenv("api_key")
+# api_key = os.getenv("api_key")
 # api_url = f"http://api.weatherstack.com/current?access_key={api_key}&query=New York"
 
 # def fetch_data():
