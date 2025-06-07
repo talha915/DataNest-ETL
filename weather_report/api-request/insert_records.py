@@ -5,7 +5,7 @@ def connect_to_db():
     try:
         print(f"🔄 Connecting to the postgresql database.....")
         conn = psycopg2.connect(
-            host="localhost",
+            host="db",
             port="5000",
             dbname="db",
             user="db_user",
