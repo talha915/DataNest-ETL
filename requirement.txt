@@ -1,2 +1,10 @@
 requests
 psycopg2
+PX7rm8XA6gC2pv76
+
+
+CREATE USER airflow WITH PASSWORD 'airflow';
+CREATE DATABASE airflow_db OWNER airflow;
+GRANT ALL PRIVILEGES ON DATABASE airflow_db TO airflow;
+
+pe3EruhTEFkB22Xa
