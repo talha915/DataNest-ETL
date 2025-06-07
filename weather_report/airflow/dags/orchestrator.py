@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import sys
 
 sys.path.append('/opt/airflow/api-request')
-from insert_records import main
+# from insert_records import main
 
 default_args = {
     'description': "A DAG to Orchestrate data",
