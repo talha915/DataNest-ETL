@@ -24,5 +24,10 @@ dag = DAG(
 with dag:
     python_task = PythonOperator(
         task_id='print_hello_task',
+        python_callable=print_hello
+    )
+
+    insert_record_task = PythonOperator(
+        task_id='insert_record_task',
         python_callable=main
     )
