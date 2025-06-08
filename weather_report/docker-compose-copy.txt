@@ -1,27 +1,18 @@
 services:
   db:
     container_name: postgres_container
-    image: postgres:14.17
+    image: postgres:15-alpine
     ports:
       - 5000:5432
-    # environment:
-    #   POSTGRES_DB: db
-    #   POSTGRES_USER: db_user
-    #   POSTGRES_PASSWORD: db_password
     environment:
-      POSTGRES_DB: airflow_db
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: db_password
     volumes:
       - ./postgres/data:/var/lib/postgresql/data  
       - ./postgres/airflow_init.sql:/docker-entrypoint-initdb.d/airflow_init.sql
     networks:
-      - my-network 
-    healthcheck:  # ✅ Marks DB as healthy once ready
-      test: ["CMD-SHELL", "pg_isready -U db_user -d db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5   
+      - my-network  
 
   airflow:
     container_name: airflow_container
@@ -35,8 +26,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./api-request:/opt/airflow/api-request
     depends_on:
-      db:
-        condition: service_healthy  
+      - db  
     networks:
       - my-network
     command: >
@@ -61,7 +51,7 @@ services:
       - db
     networks: 
       - my-network
-  #   command: debug      
+    command: debug      
 
 networks:
   my-network:

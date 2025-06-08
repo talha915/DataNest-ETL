@@ -4,14 +4,10 @@ services:
     image: postgres:14.17
     ports:
       - 5000:5432
-    # environment:
-    #   POSTGRES_DB: db
-    #   POSTGRES_USER: db_user
-    #   POSTGRES_PASSWORD: db_password
     environment:
-      POSTGRES_DB: airflow_db
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: db
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: db_password
     volumes:
       - ./postgres/data:/var/lib/postgresql/data  
       - ./postgres/airflow_init.sql:/docker-entrypoint-initdb.d/airflow_init.sql
@@ -48,19 +44,19 @@ services:
     #     airflow standalone
     #   "
 
-  dbt:
-    container_name: dbt_container
-    image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
-    volumes:
-      - ./dbt/my_project:/usr/app
-      - ./dbt:/root/.dbt
-    working_dir: /usr/app
-    environment:
-      DBT_PROFILES_DIR: "/root/.dbt"
-    depends_on:
-      - db
-    networks: 
-      - my-network
+  # dbt:
+  #   container_name: dbt_container
+  #   image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
+  #   volumes:
+  #     - ./dbt/my_project:/usr/app
+  #     - ./dbt:/root/.dbt
+  #   working_dir: /usr/app
+  #   environment:
+  #     DBT_PROFILES_DIR: "/root/.dbt"
+  #   depends_on:
+  #     - db
+  #   networks: 
+  #     - my-network
   #   command: debug      
 
 networks:
