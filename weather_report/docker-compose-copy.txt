@@ -1,7 +1,7 @@
 services:
   db:
     container_name: postgres_container
-    image: postgres:14.17
+    image: postgres:15-alpine
     ports:
       - 5000:5432
     environment:
@@ -38,20 +38,20 @@ services:
     #     airflow standalone
     #   "
 
-#   dbt:
-#     container_name: dbt_container
-#     image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
-#     volumes:
-#       - ./dbt/my_project:/usr/app
-#       - ./dbt:/root/.dbt
-#     working_dir: /usr/app
-#     environment:
-#       DBT_PROFILES_DIR: "/root/.dbt"
-#     depends_on:
-#       - db
-#     networks: 
-#       - my-network
-#     command: debug      
+  dbt:
+    container_name: dbt_container
+    image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
+    volumes:
+      - ./dbt/my_project:/usr/app
+      - ./dbt:/root/.dbt
+    working_dir: /usr/app
+    environment:
+      DBT_PROFILES_DIR: "/root/.dbt"
+    depends_on:
+      - db
+    networks: 
+      - my-network
+    command: debug      
 
 networks:
   my-network:
