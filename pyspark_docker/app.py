@@ -24,5 +24,3 @@ print("JOB FINISHED — keeping application alive...")
 time.sleep(300)
 
 # spark.stop()
-
-10000000
