@@ -1,0 +1,45 @@
+docker exec -it spark-client bash
+
+/opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --conf spark.ui.port=4040 \
+  /opt/spark-apps/app.py
+
+/opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --conf spark.ui.port=4040 \
+  /opt/spark-apps/events_process.py
+
+
+
+docker exec -it spark-client /opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --conf spark.ui.port=4040 \
+  /opt/spark-apps/events_process.py
+
+
+1. Partition
+2. Task
+3. Executor
+4. Worker
+5. Job
+6. Stage
+7. Narrow vs Wide
+8. Shuffle
+9. Waves / Parallelism
+10. Spark UI
+11. Slow-job diagnosis
+12. Data skew
+13. Salting
+14. Join strategies
+15. Broadcast Join
+16. AQE
+17. Memory / Spill / GC
+18. Catalyst / explain()
+19. Partitioning optimization
+20. Parquet / file optimization
+21. PySpark UDF / Pandas UDF
+22. Caching
+23. Streaming
+24. Production monitoring
+25. Cluster/resource tuning  
