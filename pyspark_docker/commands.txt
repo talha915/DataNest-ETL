@@ -11,7 +11,6 @@ docker exec -it spark-client bash
   /opt/spark-apps/events_process.py
 
 
-
 docker exec -it spark-client /opt/spark/bin/spark-submit \
   --master spark://spark-master:7077 \
   --conf spark.ui.port=4040 \
