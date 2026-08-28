@@ -105,7 +105,7 @@ print(f"[INFO] Total groups returned: {len(final)}")
 # Step 8: Pause -> taake aap localhost:4040 par Jobs/Stages/
 # Executors tab dekh saken before Spark exits
 # ---------------------------------------------------------
-input("\n[PAUSE] UI dekhne ke liye Enter dabayein (http://localhost:4040)...\n")
+input("\n[PAUSE]  (http://localhost:4040)...\n")
 
 spark.stop()
 print("[INFO] SparkSession stopped.")
