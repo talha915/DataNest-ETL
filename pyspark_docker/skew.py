@@ -14,8 +14,8 @@ from pyspark.sql import SparkSession, functions as F
 import random
 
 # ---------------------------------------------------------
-# Step 0: SparkSession — master() yahan nahi diya jaraha,
-# spark-submit ke --master flag se aayega (see Run command above)
+# Step 0: SparkSession — master() 
+# spark-submit ke --master flag 
 # ---------------------------------------------------------
 spark = SparkSession.builder \
     .appName("ShuffleSkewScenario") \
@@ -51,16 +51,15 @@ region_master_df = spark.createDataFrame(
 )
 
 # ---------------------------------------------------------
-# Step 3: JOIN + cache (taake repetition na ho - Job 2/3 isay
-# dobara compute na karein)
+# Step 3: JOIN + cache 
 # ---------------------------------------------------------
 joined_df = orders_df.join(region_master_df, on="region_id", how="inner").cache()
-joined_df.count()  # cache ko force-materialize karne ke liye (1 job yahan chalegi)
+joined_df.count()  
 
-print("[INFO] joined_df cached. Ab baaki steps isi cached data ko reuse karenge.\n")
+print("[INFO] joined_df cached. \n")
 
 # ---------------------------------------------------------
-# Step 4: Aggregation (GROUPBY -> asli shuffle skew yahan hoga)
+# Step 4: Aggregation (GROUPBY -> shuffle skew)
 # ---------------------------------------------------------
 print("[INFO] Running groupBy aggregation...")
 result_df = joined_df.groupBy("region_id", "region_name") \
@@ -70,9 +69,6 @@ result_df.orderBy(F.desc("total_orders")).show(truncate=False)
 
 # ---------------------------------------------------------
 # Step 5: Partition-level physical skew check (post-shuffle)
-# groupBy ke baad wale shuffle partitions dekhne ke liye,
-# result_df par hi partition id lagayein (joined_df par lagane se
-# broadcast-join input partitions dikhtay hain, shuffle wale nahi)
 # ---------------------------------------------------------
 print("[INFO] Checking shuffle partition sizes AFTER groupBy shuffle...")
 
@@ -85,7 +81,7 @@ joined_df.groupBy("region_id", "region_name") \
     .show(20, truncate=False)
 
 # ---------------------------------------------------------
-# Step 6: Numeric skew proof (bina UI khole)
+# Step 6: Numeric skew proof
 # ---------------------------------------------------------
 print("[INFO] Numeric skew summary:")
 result_df.select(
@@ -103,7 +99,6 @@ print(f"[INFO] Total groups returned: {len(final)}")
 
 # ---------------------------------------------------------
 # Step 8: Pause -> taake aap localhost:4040 par Jobs/Stages/
-# Executors tab dekh saken before Spark exits
 # ---------------------------------------------------------
 input("\n[PAUSE]  (http://localhost:4040)...\n")
 
