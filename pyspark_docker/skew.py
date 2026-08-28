@@ -23,7 +23,7 @@ spark = SparkSession.builder \
     .config("spark.sql.adaptive.enabled", "false") \
     .getOrCreate()
 
-spark.sparkContext.setLogLevel("WARN")  # console noise kam karne ke liye
+spark.sparkContext.setLogLevel("WARN")  
 
 print("\n[INFO] SparkSession created. UI available at http://localhost:4040\n")
 
@@ -97,10 +97,10 @@ result_df.select(
 final = result_df.collect()
 print(f"[INFO] Total groups returned: {len(final)}")
 
-# ---------------------------------------------------------
-# Step 8: Pause -> taake aap localhost:4040 par Jobs/Stages/
-# ---------------------------------------------------------
-input("\n[PAUSE]  (http://localhost:4040)...\n")
 
-spark.stop()
-print("[INFO] SparkSession stopped.")
+time.sleep(1300)
+# input("\n[PAUSE]  (http://localhost:4040)...\n")
+
+
+# spark.stop()
+# print("[INFO] SparkSession stopped.")
