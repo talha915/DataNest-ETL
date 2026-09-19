@@ -1,10 +1,18 @@
+version: "3.8"
+
 services:
   floci:
-    image: floci/floci:latest
+    image: floci/floci:latest-compat
     ports:
       - "4566:4566"
     volumes:
+      - ./floci_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/app/data
     environment:
       FLOCI_STORAGE_MODE: hybrid
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_floci/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 10s
