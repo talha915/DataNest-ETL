@@ -1,0 +1,5 @@
+floci_data/
+command.txt
+*.terraform.lock.hcl
+.terraform/
+*.csv
