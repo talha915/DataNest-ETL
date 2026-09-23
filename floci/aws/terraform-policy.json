@@ -1,0 +1,187 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:GetBucketVersioning",
+        "s3:PutBucketVersioning",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy"
+      ],
+      "Resource": [
+        "arn:aws:s3:::terraform-state-*",
+        "arn:aws:s3:::terraform-state-*/*",
+        "arn:aws:s3:::dev-*",
+        "arn:aws:s3:::dev-*/*"
+      ]
+    },
+    {
+      "Sid": "IAMRoleManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:ListRoles",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/terraform-*"
+    },
+    {
+      "Sid": "IAMPolicyManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicy",
+        "iam:ListPolicies",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:GetPolicyVersion",
+        "iam:ListPolicyVersions"
+      ],
+      "Resource": "arn:aws:iam::*:policy/terraform-*"
+    },
+    {
+      "Sid": "IAMUserManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:GetUser",
+        "iam:ListUsers",
+        "iam:UpdateUser",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:ListAccessKeys",
+        "iam:GetAccessKeyLastUsed"
+      ],
+      "Resource": "arn:aws:iam::*:user/terraform-*"
+    },
+    {
+      "Sid": "IAMGroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateGroup",
+        "iam:DeleteGroup",
+        "iam:GetGroup",
+        "iam:ListGroups",
+        "iam:AddUserToGroup",
+        "iam:RemoveUserFromGroup",
+        "iam:GetGroupPolicy",
+        "iam:PutGroupPolicy",
+        "iam:DeleteGroupPolicy",
+        "iam:ListGroupPolicies",
+        "iam:AttachGroupPolicy",
+        "iam:DetachGroupPolicy",
+        "iam:ListAttachedGroupPolicies"
+      ],
+      "Resource": "arn:aws:iam::*:group/terraform-*"
+    },
+    {
+      "Sid": "LambdaManagement",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:ListFunctions",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy"
+      ],
+      "Resource": "arn:aws:lambda:*:*:function/terraform-*"
+    },
+    {
+      "Sid": "SNSManagement",
+      "Effect": "Allow",
+      "Action": [
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:GetTopicAttributes",
+        "sns:ListTopics",
+        "sns:SetTopicAttributes",
+        "sns:Subscribe",
+        "sns:Unsubscribe",
+        "sns:ListSubscriptionsByTopic",
+        "sns:Publish"
+      ],
+      "Resource": "arn:aws:sns:*:*:terraform-*"
+    },
+    {
+      "Sid": "SQSManagement",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:CreateQueue",
+        "sqs:DeleteQueue",
+        "sqs:GetQueueAttributes",
+        "sqs:ListQueues",
+        "sqs:SetQueueAttributes",
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:PurgeQueue",
+        "sqs:GetQueueUrl"
+      ],
+      "Resource": "arn:aws:sqs:*:*:terraform-*"
+    },
+    {
+      "Sid": "DynamoDBManagement",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:ListTables",
+        "dynamodb:UpdateTable",
+        "dynamodb:DescribeStream",
+        "dynamodb:ListStreams"
+      ],
+      "Resource": "arn:aws:dynamodb:*:*:table/terraform-*"
+    },
+    {
+      "Sid": "CloudFormation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:ListStacks",
+        "cloudformation:UpdateStack",
+        "cloudformation:DescribeStackEvents"
+      ],
+      "Resource": "arn:aws:cloudformation:*:*:stack/terraform-*/*"
+    },
+    {
+      "Sid": "TagManagement",
+      "Effect": "Allow",
+      "Action": [
+        "tag:TagResource",
+        "tag:UntagResource",
+        "tag:ListTagsForResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/Environment": "terraform"
+        }
+      }
+    }
+  ]
+}
