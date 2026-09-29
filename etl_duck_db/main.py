@@ -1,7 +1,12 @@
-from src.pipeline.database import create_database
+from src.pipeline.database import SpotifyDB
+
 def main():
-    conn = create_database()
-    conn.close()
+    db = SpotifyDB()
+
+    db.create_schemas()
+
+    db.close()
+
 
 if __name__ == "__main__":
     main()
