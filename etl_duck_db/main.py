@@ -1,4 +1,4 @@
-from src.pipeline.database import SpotifyDB
+from db.connection import SpotifyDB
 
 def main():
     db = SpotifyDB()
