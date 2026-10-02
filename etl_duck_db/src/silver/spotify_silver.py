@@ -1,4 +1,4 @@
-from src.pipeline.database import SpotifyDB
+from src.db.connection import SpotifyDB
 
 
 class SilverLayer:
