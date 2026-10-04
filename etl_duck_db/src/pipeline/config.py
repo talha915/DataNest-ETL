@@ -22,6 +22,10 @@ class SilverConfig:
     data_path: str
 
 @dataclass(frozen=True)
+class GoldConfig:
+    data_path: str    
+
+@dataclass(frozen=True)
 class SqlConfig:
     sql_path: str
 
@@ -45,6 +49,7 @@ class Config:
     source: SourceConfig
     bronze: BronzeConfig
     silver: SilverConfig
+    gold: GoldConfig
     sql: SqlConfig
     schemas: SchemaConfig
     pipeline: PipelineConfig
@@ -68,6 +73,9 @@ def load_config_file(path: str = "config/config.yaml") -> Config:
         ),
         silver = SilverConfig(
             data_path = yaml_content["silver"]["data_path"]
+        ),
+        gold = GoldConfig(
+            data_path = yaml_content["gold"]["data_path"]
         ),
         sql=SqlConfig(
             sql_path = yaml_content["sql"]["path"]

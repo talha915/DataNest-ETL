@@ -24,10 +24,11 @@ class Silver(DatabaseSchema):
 class Gold(DatabaseSchema):
     name = "gold"
     tables = [
-        Table(name="daily_listening"),
-        Table(name="artist_listening"),
-        Table(name="track_listening"),
-        Table(name="user_listening"),
+        Table(name="top_users"),
+        Table(name="users_active_on_date"),
+        Table(name="users_first_song"),
+        Table(name="users_top_days"),
+        Table(name="daily_active_users"),
     ]
 
 

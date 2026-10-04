@@ -5,6 +5,7 @@ from pipeline.database import Database
 from pipeline.schemas import create_schemas, create_tables
 from pipeline.bronze import Bronze
 from pipeline.silver import Silver
+from pipeline.gold import Gold
 
 
 def main():
@@ -35,6 +36,8 @@ def main():
         cfg.sql.sql_path,
         cfg.silver.data_path,
     ).run()
+
+    Gold(db).run()
 
     db.close()
     print("Done.")

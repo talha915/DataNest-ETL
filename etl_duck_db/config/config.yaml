@@ -10,6 +10,9 @@ bronze:
 silver:
   data_path: data/silver/listen_events  
 
+gold:
+  data_path: data/gold  
+
 schemas:
   bronze: bronze
   silver: silver
