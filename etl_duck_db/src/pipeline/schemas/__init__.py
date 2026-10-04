@@ -1,16 +1,8 @@
-from .base import DatabaseSchema, Table
-from .tables import (
-    Bronze,
-    Gold,
-    Pipeline,
-    Silver,
+from .base import (
+    DatabaseSchema,
+    Table,
+    ALL_SCHEMAS,
+    create_schemas,
+    create_tables,
 )
-
-__all__ = [
-    "DatabaseSchema",
-    "Table",
-    "Bronze",
-    "Silver",
-    "Gold",
-    "Pipeline"
-]
+from .tables import Bronze, Silver, Gold, Meta, qualified

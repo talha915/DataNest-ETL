@@ -1,47 +1,69 @@
-from .base import Table, DatabaseSchema
+from dataclasses import dataclass, field
+from .base import DatabaseSchema, Table, ALL_SCHEMAS
+
+
+@dataclass
+class MetaTable(Table):
+    ddl: str = ""
+
 
 class Bronze(DatabaseSchema):
     name = "bronze"
-
-    bronze_listen_events = Table(
-        name = "bronze_listen_events"
-    )
-
-    file_ingestion_log = Table(
-        name="file_ingestion_log"
-    )
+    tables = [
+        Table(name="listen_events", is_source_table=True),
+    ]
 
 
 class Silver(DatabaseSchema):
     name = "silver"
+    tables = [
+        Table(name="listen_events"),
+    ]
 
-    silver_listen_events = Table(
-        name = "silver_listen_events"
-    )
 
 class Gold(DatabaseSchema):
     name = "gold"
-
-    daily_listening = Table(
-        name="gold_daily_listening"
-    )
-
-    artist_listening = Table(
-        name="gold_artist_listening"
-    )
-
-    track_listening = Table(
-        name="gold_track_listening"
-    )
-
-    user_listening = Table(
-        name="gold_user_listening"
-    )
+    tables = [
+        Table(name="daily_listening"),
+        Table(name="artist_listening"),
+        Table(name="track_listening"),
+        Table(name="user_listening"),
+    ]
 
 
-class Pipeline(DatabaseSchema):
-    name = "pipeline"
+class Meta(DatabaseSchema):
+    name = "meta"
 
-    run_log = Table(
-        name="run_log"
-    )    
+    tables = [
+        Table(
+            name="run_log",
+            ddl="""
+                run_id       VARCHAR,
+                layer        VARCHAR,
+                job_name     VARCHAR,
+                status       VARCHAR,
+                started_at   TIMESTAMP,
+                completed_at TIMESTAMP,
+                rows         BIGINT,
+                error        VARCHAR
+            """,
+        ),
+        Table(
+            name="watermark",
+            ddl="""
+                layer        VARCHAR,
+                job_name     VARCHAR,
+                last_file    VARCHAR,
+                last_run_at  TIMESTAMP,
+                PRIMARY KEY (layer, job_name)
+            """,
+        ),
+    ]
+
+
+ALL_SCHEMAS.extend([Bronze, Silver, Gold, Meta])
+
+
+def qualified(schema_cls, table_name: str) -> str:
+    schema_cls.table(table_name)
+    return f'"{schema_cls.name}"."{table_name}"'
