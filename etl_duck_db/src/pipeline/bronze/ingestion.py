@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from datetime import datetime
 
 from ..schemas.tables import Bronze as BronzeSchema, qualified
 from ..system import RunLogger, Watermark
@@ -24,6 +25,7 @@ class Bronze:
         self.logger = RunLogger(db)
         self.watermark = Watermark(db)
 
+
     def run(self):
         run_id = self.logger.start(LAYER, JOB)
 
@@ -31,64 +33,74 @@ class Bronze:
             total_rows = 0
 
             for file in sorted(self.source.glob("*.json")):
-                self.to_parquet(file)
-                total_rows += self._load(file)
+                out = self.to_parquet(file)
+                total_rows += self.load(out)
 
             self.logger.success(run_id, total_rows)
-            log.info("Bronze done. New rows: %s", total_rows)
+            log.info(f"Bronze done. Ingested New rows: {total_rows}")
 
         except Exception as e:
             self.logger.failure(run_id, str(e))
             log.exception("Bronze failed.")
             raise
 
-    # ----------------------------------------------------------
 
-    def to_parquet(self, file: Path):
-        out = self.parquet_dir / f"{file.stem}.parquet"
+    def to_parquet(self, file: Path) -> Path:
+        now = datetime.now()
+
+        partition_dir = (
+            self.parquet_dir
+            / f"year={now.year}"
+            / f"month={now.month}"
+        )
+        partition_dir.mkdir(parents=True, exist_ok=True)
+
+        out = partition_dir / f"{file.stem}.parquet"
 
         if out.exists():
-            log.info("Skip parquet: %s", out.name)
-            return
+            log.info(f"Skip parquet: {out.name}")
+            return out
 
         self.db.read_json(str(file)).write_parquet(str(out))
-        log.info("Parquet: %s", out.name)
+        return out
 
-    def _load(self, file: Path) -> int:
-        out = self.parquet_dir / f"{file.stem}.parquet"
-
-        # watermark check
-        if self._already_loaded(out.name):
-            log.info("Watermark says already loaded: %s", out.name)
+    def load(self, parquet_file: Path) -> int:
+        print(parquet_file)
+        if self.already_loaded(str(parquet_file)):
+            log.info(f"Already loaded: {parquet_file}")
             return 0
 
-        rel = self.db.read_parquet(str(out))
-
-        select = f"""
+        rel = self.db.read_parquet(str(parquet_file))
+        last_ts = self.watermark.get(LAYER, JOB) or "1970-01-01"
+        query = f"""
             SELECT *,
-                   '{out.name}' AS _source_file,
-                   current_timestamp AS _ingested_at
+                   md5(
+                       coalesce(user_name, '') || '|' ||
+                       coalesce(recording_msid, '') || '|' ||
+                       cast(listened_at AS VARCHAR)
+                   ) AS event_id,
+                   '{parquet_file}' AS source_file_path,
+                   current_timestamp AS ingested_at
             FROM ({rel.sql_query()})
+            WHERE listened_at > {last_ts}
         """
 
-        if not self._exists():
-            self.db.sql(f"CREATE TABLE {self.table} AS {select}")
-            log.info("Created %s", self.table)
+        if not self.exists():
+            self.db.execute(f"CREATE TABLE {self.table} AS {query}")
+            log.info(f"Created {self.table}")
         else:
-            self.db.sql(f"INSERT INTO {self.table} {select}")
-            log.info("Appended: %s", out.name)
+            self.db.execute(f"INSERT INTO {self.table} {query}")
+            log.info(f"Appended: {parquet_file}")
 
-        # rows count
         rows = self.db.fetchone(
-            f"SELECT COUNT(*) FROM ({select})"
+            f"SELECT COUNT(*) FROM ({query})"
         )[0]
 
-        # watermark update
-        self.watermark.set(LAYER, JOB, out.name)
-
+        max_ts = self.db.fetchone(f"SELECT MAX(listened_at) FROM ({query})")[0]
+        self.watermark.set(LAYER, JOB, str(max_ts))
         return rows
 
-    def _exists(self) -> bool:
+    def exists(self) -> bool:
         row = self.db.fetchone(f"""
             SELECT COUNT(*) FROM information_schema.tables
             WHERE table_schema = '{BronzeSchema.name}'
@@ -96,13 +108,15 @@ class Bronze:
         """)
         return row[0] > 0
 
-    def _already_loaded(self, file_name: str) -> bool:
-        if not self._exists():
+    def already_loaded(self, file_path: str) -> bool:
+        if not self.exists():
             return False
 
         row = self.db.fetchone(
             f"SELECT 1 FROM {self.table} "
-            f"WHERE _source_file = ? LIMIT 1",
-            [file_name],
+            f"WHERE source_file_path = ? LIMIT 1",
+            [file_path],
         )
         return row is not None
+
+# data\bronze\listen_events\year=2026\month=10\dataset.parquet    

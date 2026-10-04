@@ -31,13 +31,13 @@ def main():
         cfg.bronze.data_path,
     ).run()
 
-    Silver(
-        db,
-        cfg.sql.sql_path,
-        cfg.silver.data_path,
-    ).run()
+    # Silver(
+    #     db,
+    #     cfg.sql.sql_path,
+    #     cfg.silver.data_path,
+    # ).run()
 
-    Gold(db).run()
+    # Gold(db).run()
 
     db.close()
     print("Done.")
