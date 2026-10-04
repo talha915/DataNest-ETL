@@ -31,7 +31,7 @@ class Bronze:
             total_rows = 0
 
             for file in sorted(self.source.glob("*.json")):
-                self._to_parquet(file)
+                self.to_parquet(file)
                 total_rows += self._load(file)
 
             self.logger.success(run_id, total_rows)
@@ -44,7 +44,7 @@ class Bronze:
 
     # ----------------------------------------------------------
 
-    def _to_parquet(self, file: Path):
+    def to_parquet(self, file: Path):
         out = self.parquet_dir / f"{file.stem}.parquet"
 
         if out.exists():
