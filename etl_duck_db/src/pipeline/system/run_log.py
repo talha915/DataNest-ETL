@@ -6,7 +6,7 @@ from ..schemas.tables import Meta, qualified
 
 class RunLogger:
     """
-    Writes pipeline runs to system.run_log.
+    Writes pipeline runs to meta.run_log.
     """
 
     def __init__(self, db):

@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 
 from ..schemas.tables import Bronze as BronzeSchema, qualified
-from ..system import RunLogger, Watermark
+from ..system import RunLogger
 
 
 log = logging.getLogger(__name__)
@@ -23,7 +23,6 @@ class Bronze:
 
         self.table = qualified(BronzeSchema, JOB)
         self.logger = RunLogger(db)
-        self.watermark = Watermark(db)
 
 
     def run(self):
@@ -65,13 +64,14 @@ class Bronze:
         return out
 
     def load(self, parquet_file: Path) -> int:
+        parquet_file = parquet_file.as_posix()
         print(parquet_file)
-        if self.already_loaded(str(parquet_file)):
+        if self.already_loaded(parquet_file):
             log.info(f"Already loaded: {parquet_file}")
             return 0
 
         rel = self.db.read_parquet(str(parquet_file))
-        last_ts = self.watermark.get(LAYER, JOB) or "1970-01-01"
+        
         query = f"""
             SELECT *,
                    md5(
@@ -82,7 +82,6 @@ class Bronze:
                    '{parquet_file}' AS source_file_path,
                    current_timestamp AS ingested_at
             FROM ({rel.sql_query()})
-            WHERE listened_at > {last_ts}
         """
 
         if not self.exists():
@@ -96,8 +95,6 @@ class Bronze:
             f"SELECT COUNT(*) FROM ({query})"
         )[0]
 
-        max_ts = self.db.fetchone(f"SELECT MAX(listened_at) FROM ({query})")[0]
-        self.watermark.set(LAYER, JOB, str(max_ts))
         return rows
 
     def exists(self) -> bool:

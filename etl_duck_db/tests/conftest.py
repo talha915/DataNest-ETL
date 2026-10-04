@@ -7,9 +7,6 @@ from pipeline.database import Database
 from pipeline.schemas import create_schemas, create_tables
 
 
-# ------------------------------------------------------------------
-# Temporary database
-# ------------------------------------------------------------------
 
 @pytest.fixture
 def db(tmp_path):
@@ -21,44 +18,59 @@ def db(tmp_path):
     database.close()
 
 
-# ------------------------------------------------------------------
-# Sample NDJSON data
-# ------------------------------------------------------------------
 
 @pytest.fixture
 def sample_events():
     return [
         {
             "track_metadata": {
-                "artist_name": "Artist A",
-                "track_name": "Track A",
-                "release_name": "Album A",
                 "additional_info": {
-                    "artist_msid": "art-1",
-                    "release_msid": "rel-1",
-                    "recording_msid": "rec-1",
-                    "recording_mbid": "mbid-1",
+                    "release_msid": "34dbfc73-31e4-45c3-9d6e-xxxxxxx",
+                    "release_mbid": None,
+                    "recording_mbid": None,
+                    "release_group_mbid": None,
+                    "artist_mbids": [],
+                    "tags": [],
+                    "work_mbids": [],
+                    "isrc": None,
+                    "spotify_id": None,
+                    "tracknumber": None,
+                    "track_mbid": None,
+                    "artist_msid": "aaaaa-27e7-40af-852a-abaed88ec838",
+                    "recording_msid": "1e1b2aa0-b2db-42ed-bbbb-89c303499408",
                 },
+                "artist_name": "Withered Hand",
+                "track_name": "Love In the Time of Ecstacy",
+                "release_name": "News",
             },
             "listened_at": 1555286560,
-            "recording_msid": "rec-1",
-            "user_name": "user-1",
+            "recording_msid": "1e1b2aa0-b2db-42ed-a8ba-89c303499408",
+            "user_name": "aaaaaa",
         },
         {
             "track_metadata": {
-                "artist_name": "Artist B",
-                "track_name": "Track B",
-                "release_name": "Album B",
                 "additional_info": {
-                    "artist_msid": "art-2",
-                    "release_msid": "rel-2",
-                    "recording_msid": "rec-2",
-                    "recording_mbid": "mbid-2",
+                    "release_msid": "34dbfc73-31e4-45c3-9d6e-xxxxx",
+                    "release_mbid": None,
+                    "recording_mbid": None,
+                    "release_group_mbid": None,
+                    "artist_mbids": [],
+                    "tags": [],
+                    "work_mbids": [],
+                    "isrc": None,
+                    "spotify_id": None,
+                    "tracknumber": None,
+                    "track_mbid": None,
+                    "artist_msid": "aaaa-27e7-40af-852a-abaed88ec838",
+                    "recording_msid": "sss-75e2-406a-8c5e-f38136aa5a68",
                 },
+                "artist_name": "Withered Hand",
+                "track_name": "Cornflake",
+                "release_name": "News",
             },
-            "listened_at": 1555286570,
-            "recording_msid": "rec-2",
-            "user_name": "user-1",
+            "listened_at": 1555286378,
+            "recording_msid": "283062c8-75e2-406a-8c5e-f38136aa5a68",
+            "user_name": "aaaaa",
         },
     ]
 
@@ -75,15 +87,6 @@ def source_dir(tmp_path, sample_events):
     return src
 
 
-# ------------------------------------------------------------------
-# Temporary parquet directory
-# ------------------------------------------------------------------
-
 @pytest.fixture
-def bronze_parquet_dir(tmp_path):
-    return tmp_path / "bronze_parquet"
-
-
-@pytest.fixture
-def silver_parquet_dir(tmp_path):
-    return tmp_path / "silver_parquet"
+def parquet_dir(tmp_path):
+    return tmp_path / "parquet"
