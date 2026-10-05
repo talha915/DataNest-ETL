@@ -1,7 +1,12 @@
 import logging
 from pathlib import Path
 
-from ..schemas.tables import Silver as SilverSchema, qualified
+from ..schemas.tables import (
+    Silver as SilverSchema,
+    Bronze as BronzeSchema,
+    Meta as MetaSchema,
+    qualified
+)
 from ..system import RunLogger, Watermark
 
 
@@ -14,13 +19,16 @@ JOB = "listen_events"
 
 class Silver:
 
-    def __init__(self, db, sql_dir: str, parquet_dir: str):
+    def __init__(self, db, parquet_dir: str):
         self.db = db
         self.sql_dir = Path(__file__).parent.parent / "sql" / "silver"
         self.parquet_dir = Path(parquet_dir)
         self.parquet_dir.mkdir(parents=True, exist_ok=True)
 
         self.table = qualified(SilverSchema, JOB)
+        self.source_table = qualified(BronzeSchema, JOB)
+        self.quarantine_table = qualified(MetaSchema, "quarantine")
+
         self.logger = RunLogger(db)
         self.watermark = Watermark(db)
 
@@ -28,72 +36,86 @@ class Silver:
         run_id = self.logger.start(LAYER, JOB)
 
         try:
-            rows = self._load()
+            rows = self.load()
             self.logger.success(run_id, rows)
-            log.info("Silver done. New rows: %s", rows)
+            log.info(f"Silver done. New rows: {rows}")
 
         except Exception as e:
             self.logger.failure(run_id, str(e))
             log.exception("Silver failed.")
             raise
 
-    # ----------------------------------------------------------
+    def load(self) -> int:
+        last_ts = self.watermark.get(LAYER, JOB) or "0"
+        log.info(f"Watermark last_value: {last_ts}")
 
-    def _load(self) -> int:
-        # 1. last processed timestamp
-        last_ts = self.watermark.get(LAYER, JOB) or "1970-01-01 00:00:00"
-        log.info("Watermark last_value: %s", last_ts)
+        base = self.load_sql("transform").format(
+            source_table=self.source_table,
+            last_ts=last_ts,
+        )
 
-        # 2. base silver query
-        base = self._load_sql(JOB)
+        valid_query = self.load_sql("valid_events").format(source=base)
 
-        # 3. filter naye rows (watermark)
-        query = f"""
-            SELECT * FROM ({base})
-            WHERE listened_at_ts > TIMESTAMP '{last_ts}'
-        """
+        dedup = self.load_sql("dedup").format(source=valid_query)
+        deduped = f"SELECT * FROM ({dedup})"
 
-        # 4. anti-join — sirf woh rows jo silver mein nahi hain
-        if self._exists():
-            query = f"""
-                SELECT s.* FROM ({query}) s
-                LEFT JOIN {self.table} t
-                  ON s.user_name = t.user_name
-                 AND s.recording_msid = t.recording_msid
-                 AND s.listened_at = t.listened_at
-                WHERE t.user_name IS NULL
-            """
-
-        rel = self.db.sql(query)
-
-        # 5. create / insert
-        if not self._exists():
-            self.db.execute(
-                f"CREATE TABLE {self.table} AS SELECT * FROM ({rel.sql_query()})"
+        if self.exists():
+            final = self.load_sql("final_silver").format(
+                source=deduped,
+                target=self.table,
             )
-            log.info("Created %s", self.table)
         else:
-            self.db.execute(
-                f"INSERT INTO {self.table} SELECT * FROM ({rel.sql_query()})"
-            )
-            log.info("Appended to %s", self.table)
+            final = deduped
 
-        # 6. rows count
+        rel = self.db.sql(final)
+
         rows = self.db.fetchone(
             f"SELECT COUNT(*) FROM ({rel.sql_query()})"
         )[0]
 
-        # 7. watermark update — max listened_at_ts
-        max_ts = self.db.fetchone(
-            f"SELECT MAX(listened_at_ts) FROM ({rel.sql_query()})"
-        )[0]
+        if rows > 0:
+            select = f"""
+                SELECT * EXCLUDE (
+                    rn,
+                    additional_recording_msid,
+                    top_level_recording_msid,
+                    source_file_path
+                )
+                FROM ({rel.sql_query()})
+            """
 
-        if max_ts:
+            if not self.exists():
+                self.db.execute(f"CREATE TABLE {self.table} AS {select}")
+                log.info(f"Created {self.table}")
+            else:
+                self.db.execute(f"INSERT INTO {self.table} {select}")
+                log.info(f"Appended {rows} rows")
+
+        self.quarantine(base)
+
+        max_ts = self.db.fetchone(f"""
+            SELECT MAX(listened_at) FROM {self.source_table}
+        """)[0]
+
+        if max_ts is not None:
             self.watermark.set(LAYER, JOB, str(max_ts))
 
         return rows
 
-    def _exists(self) -> bool:
+    def quarantine(self, base: str):
+        invalid_query = self.load_sql("invalid_events").format(source=base)
+
+        invalid_rows = self.db.fetchone(
+            f"SELECT COUNT(*) FROM ({invalid_query})"
+        )[0]
+
+        if invalid_rows > 0:
+            self.db.execute(
+                f"INSERT INTO {self.quarantine_table} {invalid_query}"
+            )
+            log.info(f"Quarantined {invalid_rows} rows")
+
+    def exists(self) -> bool:
         row = self.db.fetchone(f"""
             SELECT COUNT(*) FROM information_schema.tables
             WHERE table_schema = '{SilverSchema.name}'
@@ -101,5 +123,5 @@ class Silver:
         """)
         return row[0] > 0
 
-    def _load_sql(self, name: str) -> str:
+    def load_sql(self, name: str) -> str:
         return (self.sql_dir / f"{name}.sql").read_text(encoding="utf-8")

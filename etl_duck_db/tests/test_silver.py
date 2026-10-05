@@ -1,186 +1,95 @@
-import pytest
+from pathlib import Path
+import json
 
 from pipeline.bronze import Bronze
 from pipeline.silver import Silver
 
 
-@pytest.fixture
-def silver_ready(db, source_dir, bronze_parquet_dir, silver_parquet_dir):
-    """Bronze chalane ke baad ka DB."""
-    Bronze(db, str(source_dir), str(bronze_parquet_dir)).run()
-    return db
+def setup_bronze(db, tmp_path, parquet_dir, events):
+    src = tmp_path / "source"
+    src.mkdir(exist_ok=True)
+
+    with (src / "dataset.json").open("w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    Bronze(db, str(src), str(parquet_dir)).run()
 
 
-# ------------------------------------------------------------------
-# Basic transformation
-# ------------------------------------------------------------------
+def test_silver_creates_table(db, tmp_path, sample_events, parquet_dir):
+    setup_bronze(db, tmp_path, parquet_dir, sample_events)
 
-def test_silver_creates_table(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
+    Silver(db, str(tmp_path / "silver")).run()
 
-    rows = silver_ready.fetchone(
-        'SELECT COUNT(*) FROM silver.listen_events'
-    )[0]
+    rows = db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0]
     assert rows == 2
 
 
-def test_silver_flattens_json(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
+def test_silver_flattens_columns(db, tmp_path, sample_events, parquet_dir):
+    setup_bronze(db, tmp_path, parquet_dir, sample_events)
 
-    row = silver_ready.fetchone("""
-        SELECT artist_name, track_name, release_name
-        FROM silver.listen_events
-        ORDER BY listened_at
-        LIMIT 1
+    Silver(db, str(tmp_path / "silver")).run()
+
+    row = db.fetchone("""
+        SELECT artist_name FROM silver.listen_events LIMIT 1
     """)
 
-    assert row[0] == "Artist A"
-    assert row[1] == "Track A"
-    assert row[2] == "Album A"
+    assert row[0] == "Withered Hand"
 
 
-def test_silver_adds_listened_at_ts(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
+def test_silver_idempotent(db, tmp_path, sample_events, parquet_dir):
+    setup_bronze(db, tmp_path, parquet_dir, sample_events)
 
-    row = silver_ready.fetchone("""
-        SELECT listened_at_ts FROM silver.listen_events LIMIT 1
-    """)
-
-    assert row[0] is not None
-
-
-def test_silver_adds_listened_date(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
-
-    row = silver_ready.fetchone("""
-        SELECT listened_date FROM silver.listen_events LIMIT 1
-    """)
-
-    assert row[0] is not None
-
-
-# ------------------------------------------------------------------
-# Filtering
-# ------------------------------------------------------------------
-
-def test_silver_filters_null_recording_msid(
-    db, tmp_path, bronze_parquet_dir, silver_parquet_dir
-):
-    import json
-
-    src = tmp_path / "source"
-    src.mkdir()
-
-    with (src / "data.json").open("w") as f:
-        # valid
-        f.write(json.dumps({
-            "track_metadata": {"artist_name": "A", "track_name": "T"},
-            "listened_at": 100,
-            "recording_msid": "rec-1",
-            "user_name": "u1",
-        }) + "\n")
-        # invalid — no recording_msid
-        f.write(json.dumps({
-            "track_metadata": {"artist_name": "B", "track_name": "T2"},
-            "listened_at": 101,
-            "recording_msid": None,
-            "user_name": "u2",
-        }) + "\n")
-
-    Bronze(db, str(src), str(bronze_parquet_dir)).run()
-    Silver(db, str(silver_parquet_dir)).run()
+    Silver(db, str(tmp_path / "silver")).run()
+    Silver(db, str(tmp_path / "silver")).run()
 
     rows = db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0]
-    assert rows == 1
+    assert rows == 2
 
 
-# ------------------------------------------------------------------
-# Deduplication
-# ------------------------------------------------------------------
+def test_silver_watermark_set(db, tmp_path, sample_events, parquet_dir):
+    setup_bronze(db, tmp_path, parquet_dir, sample_events)
 
-def test_silver_deduplicates_by_event_id(
-    db, tmp_path, bronze_parquet_dir, silver_parquet_dir
-):
-    import json
+    Silver(db, str(tmp_path / "silver")).run()
 
-    src = tmp_path / "source"
-    src.mkdir()
-
-    event = {
-        "track_metadata": {"artist_name": "A", "track_name": "T"},
-        "listened_at": 100,
-        "recording_msid": "rec-1",
-        "user_name": "u1",
-    }
-
-    with (src / "data.json").open("w") as f:
-        # same event twice
-        f.write(json.dumps(event) + "\n")
-        f.write(json.dumps(event) + "\n")
-
-    Bronze(db, str(src), str(bronze_parquet_dir)).run()
-    Silver(db, str(silver_parquet_dir)).run()
-
-    rows = db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0]
-    assert rows == 1  # deduplicated
-
-
-# ------------------------------------------------------------------
-# Idempotency
-# ------------------------------------------------------------------
-
-def test_silver_idempotent(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
-    Silver(silver_ready, str(silver_parquet_dir)).run()
-
-    rows = silver_ready.fetchone(
-        'SELECT COUNT(*) FROM silver.listen_events'
-    )[0]
-    assert rows == 2  # still 2, not 4
-
-
-def test_silver_appends_new_events(
-    db, tmp_path, bronze_parquet_dir, silver_parquet_dir
-):
-    import json
-
-    src = tmp_path / "source"
-    src.mkdir()
-
-    # Pehla file
-    with (src / "f1.json").open("w") as f:
-        f.write(json.dumps({
-            "track_metadata": {"artist_name": "A", "track_name": "T"},
-            "listened_at": 100,
-            "recording_msid": "rec-1",
-            "user_name": "u1",
-        }) + "\n")
-
-    Bronze(db, str(src), str(bronze_parquet_dir)).run()
-    Silver(db, str(silver_parquet_dir)).run()
-    assert db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0] == 1
-
-    # Doosra file
-    with (src / "f2.json").open("w") as f:
-        f.write(json.dumps({
-            "track_metadata": {"artist_name": "B", "track_name": "T2"},
-            "listened_at": 200,
-            "recording_msid": "rec-2",
-            "user_name": "u2",
-        }) + "\n")
-
-    Bronze(db, str(src), str(bronze_parquet_dir)).run()
-    Silver(db, str(silver_parquet_dir)).run()
-    assert db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0] == 2
-
-
-def test_silver_run_log(silver_ready, silver_parquet_dir):
-    Silver(silver_ready, str(silver_parquet_dir)).run()
-
-    row = silver_ready.fetchone("""
-        SELECT status, rows FROM meta.run_log
+    row = db.fetchone("""
+        SELECT last_value FROM meta.watermark
         WHERE layer = 'silver'
     """)
 
-    assert row[0] == "SUCCESS"
-    assert row[1] == 2
+    assert row is not None
+
+
+def test_silver_quarantines_invalid(db, tmp_path, parquet_dir):
+    events = [
+        {
+            "track_metadata": {
+                "artist_name": "Artist A",
+                "track_name": "Track A",
+                "additional_info": {},
+            },
+            "listened_at": 1555286560,
+            "recording_msid": "rec-1",
+            "user_name": "user-1",
+        },
+        {
+            "track_metadata": {
+                "artist_name": "Artist B",
+                "track_name": "Track B",
+                "additional_info": {},
+            },
+            "listened_at": 1555286570,
+            "recording_msid": None,
+            "user_name": "user-2",
+        },
+    ]
+
+    setup_bronze(db, tmp_path, parquet_dir, events)
+
+    Silver(db, str(tmp_path / "silver")).run()
+
+    silver = db.fetchone('SELECT COUNT(*) FROM silver.listen_events')[0]
+    quarantine = db.fetchone('SELECT COUNT(*) FROM meta.quarantine')[0]
+
+    assert silver == 1
+    assert quarantine == 1

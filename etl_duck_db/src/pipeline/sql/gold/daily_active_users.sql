@@ -24,6 +24,6 @@ SELECT
 FROM all_days d
 CROSS JOIN totals t
 LEFT JOIN user_days u
-    ON u.listened_date BETWEEN d.day - INTERVAL 7 DAY AND d.day
+    ON u.listened_date BETWEEN d.day - INTERVAL 6 DAY AND d.day
 GROUP BY d.day, t.total_users
 ORDER BY d.day
