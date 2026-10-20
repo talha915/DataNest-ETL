@@ -1,0 +1,26 @@
+database:
+  path: database/spotify.duckdb
+
+source:
+  spotify_json_path: data/source/listens
+
+bronze:
+  data_path: data/bronze/listen_events  
+
+silver:
+  data_path: data/silver/listen_events  
+
+gold:
+  data_path: data/gold  
+
+schemas:
+  bronze: bronze
+  silver: silver
+  gold: gold
+  system: system
+
+sql:
+  path: sql
+
+pipeline:
+  name: spotify_music_pipeline
