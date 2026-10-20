@@ -3,3 +3,6 @@ postgres/
 *.txt
 data/
 *.csv
+__pycache__
+*.duckdb
+source/
