@@ -17,6 +17,19 @@ docker exec -it spark-client /opt/spark/bin/spark-submit \
   /opt/spark-apps/events_process.py
 
 
+/opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --driver-memory 512m \
+  --executor-memory 512m \
+  --executor-cores 1 \
+  --conf spark.driver.host=spark-client \
+  --conf spark.driver.bindAddress=0.0.0.0 \
+  --conf spark.sql.adaptive.enabled=false \
+  --conf spark.sql.shuffle.partitions=8 \
+  /opt/spark-apps/skew_only.py
+
+
+
 1. Partition
 2. Task
 3. Executor
